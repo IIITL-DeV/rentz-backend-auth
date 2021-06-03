@@ -19,19 +19,15 @@ app.use(cors())
 app.get('/', verifyAccessToken, async (req, res, next) => {
     try {
         console.log(req);
-        res.send("hello from exress");
+        res.send("server is up and running...");
     } catch (error) {
         next(err);
     }
+})
+app.get('/test', (req, res) => {
+    res.send("Server is up and running...");
 })
 
-app.post('/', async (req, res, next) => {
-    try {
-        res.send()
-    } catch (error) {
-        next(err);
-    }
-})
 
 app.use('/auth', authRoutes);
 

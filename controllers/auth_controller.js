@@ -44,6 +44,25 @@ module.exports = {
             next(error);
         }
     },
+    googleauth: async (req, res, next) => {
+        try {
+            const { idToken } = req.body;
+            const decodedToken = jwt.decode(idToken, { complete: true });
+            const { email, name, imageUrl, email_verified } = decodedToken.payload;
+        }
+        catch (eror) {
+            next(error);
+        }
+
+    },
+    facebookauth: async (req, res, next) => {
+        try {
+        }
+        catch (eror) {
+            next(error);
+        }
+
+    },
     refreshToken: async (req, res, next) => {
         try {
             let { refreshToken } = req.body
