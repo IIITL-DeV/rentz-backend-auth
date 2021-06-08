@@ -9,6 +9,8 @@ router.post('/login', authcontroller.login)
 
 router.post('/login/google', authcontroller.googleauth)
 
+router.post('/verify', authcontroller.verify)
+
 router.post('/login/facebook', authcontroller.facebookauth)
 
 router.post('/refresh-token', authcontroller.refreshToken)

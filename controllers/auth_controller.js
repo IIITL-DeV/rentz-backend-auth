@@ -1,30 +1,25 @@
 const createError = require('http-errors');
 const User = require('../model/user');
-const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../helper/jwt_helper');
+const { signAccessToken, signRefreshToken, verifyRefreshToken, emailverification } = require('../helper/jwt_helper');
 const client = require('../helper/init_redis');
-
-
+const axios = require('axios').default;
 module.exports = {
     register: async (req, res, next) => {
         try {
 
-            const { Email, Password, Name, role } = req.body
-            console.log(role);
-            if (!Email || !Password) throw createError.BadRequest("bad request")
+            const { email, password, name } = req.body
+            if (!email || !password) throw createError.BadRequest("bad request")
 
-            const exist = await User.findOne({ email: Email })
+            const exist = await User.findOne({ email })
 
-            if (exist) throw createError.Conflict(`${Email} is already present`)
+            if (exist) throw createError.Conflict(`${email} is already present`)
 
-            const user = new User({ email: Email, password: Password, name: Name, role });
+            const user = new User({ email, password, name });
 
-            await user.save()
-                .then(async (saveduser) => {
-                    console.log(saveduser);
-                    const accessToken = await signAccessToken(saveduser.id);
-                    const refreshToken = await signRefreshToken(saveduser.id);
-                    res.send({ accessToken, refreshToken })
-                })
+            const savedUser = await user.save();
+            const accessToken = await signAccessToken(savedUser.id);
+            const refreshToken = await signRefreshToken(savedUser.id);
+            res.send({ accessToken, refreshToken });
         } catch (error) {
             next(error);
         }
@@ -44,13 +39,45 @@ module.exports = {
             next(error);
         }
     },
+    verify: async (req, res, next) => {
+        try {
+            const token = req.query.id;
+            const userid = await emailverification(token);
+            await User.findOneAndUpdate({ id: userId }, { verified: true });
+            res.send("Email Verified successfully...");
+        } catch (error) {
+            next(error);
+        }
+    },
     googleauth: async (req, res, next) => {
         try {
-            const { idToken } = req.body;
-            const decodedToken = jwt.decode(idToken, { complete: true });
-            const { email, name, imageUrl, email_verified } = decodedToken.payload;
+            const authHeader = req.headers['access_token'];
+            const url = `https://www.googleapis.com/oauth2/v1/userinfo?alt=json`;
+            const result = await axios.get(url, { headers: { Authorization: `Bearer ${authHeader}` } });
+            const { email, verified_email, id, name, picture } = result.data;
+            if (!email && !id) throw createError.BadRequest("bad request")
+
+            const existedUser = await User.findOne({ email })
+            if (existedUser) {
+
+                if (existedUser.googleId == id) {
+                    const accessToken = await signAccessToken(existedUser.id);
+                    const refreshToken = await signRefreshToken(existedUser.id);
+                    res.send({ accessToken, refreshToken });
+                }
+                else throw createError.BadRequest("SignIn using email and password");
+            }
+
+            else {
+                const user = new User({ email, googleId: id, name, imageUrl: picture, verified: verified_email });
+                const savedUser = await user.save();
+                const accessToken = await signAccessToken(savedUser.id);
+                const refreshToken = await signRefreshToken(savedUser.id);
+                res.send({ accessToken, refreshToken });
+                
+            }
         }
-        catch (eror) {
+        catch (error) {
             next(error);
         }
 
@@ -58,7 +85,7 @@ module.exports = {
     facebookauth: async (req, res, next) => {
         try {
         }
-        catch (eror) {
+        catch (error) {
             next(error);
         }
 
@@ -78,6 +105,7 @@ module.exports = {
     logout: async (req, res, next) => {
         try {
             const { refreshToken } = req.body;
+            console.log(req.headers);
             if (!refreshToken) throw createError.BadRequest();
             const userId = await verifyRefreshToken(refreshToken);
             client.del(userId, (err, val) => {
@@ -89,7 +117,7 @@ module.exports = {
                 res.sendStatus(204);
             })
         } catch (error) {
-            next(err)
+            next(error)
         }
     }
 }

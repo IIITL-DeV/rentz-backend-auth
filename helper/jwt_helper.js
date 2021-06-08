@@ -27,6 +27,7 @@ module.exports = {
         if (!req.headers['authorization']) return next(createError.Unauthorized())
         const authHeader = req.headers['authorization'].split(' ');
         const token = authHeader[1];
+        console.log(token);
         jwt.verify(token, process.env.accessTokenSecret, (err, payload) => {
             if (err) {
                 if (err.name === 'JsonWebTokenError') return next(createError.Unauthorized())
@@ -43,7 +44,7 @@ module.exports = {
             const payload = {
 
             }
-            const secret = process.env.refreshTokenSecret
+            const secret = process.env.refreshTokenSecret;
             const option = {
                 expiresIn: "1y",
                 issuer: "Authentication Service",
@@ -52,7 +53,6 @@ module.exports = {
             jwt.sign(payload, secret, option, async (err, token) => {
                 if (err) {
                     console.log(err.message);
-
                     return reject(createError.InternalServerError())
                 }
                 client.set(userid, token, 'EX', 365 * 24 * 60 * 60, (err, reply) => {
@@ -83,5 +83,38 @@ module.exports = {
                 return resolve(userid);
             })
         })
+    },
+    signEmailverification: () => {
+        return new Promise((resolve, reject) => {
+            const payload = {
+            };
+            const secret = process.env.emailVerificationSecret
+            const option = {
+                expiresIn: "1h",
+                issuer: "Authtication Service",
+                audience: userid
+            }
+            jwt.sign(payload, secret, option, (err, token) => {
+                if (err) {
+                    console.log(err.message);
+
+                    return reject(createError.InternalServerError())
+                }
+                resolve(token)
+            })
+        })
+    },
+    emailverification: (token) => {
+        jwt.verify(token, process.env.emailVerificationSecret, (err, payload) => {
+            if (err) {
+                if (err.name === 'JsonWebTokenError') return next(createError.Unauthorized())
+                else {
+                    return next(createError.Unauthorized(err.message))
+                }
+            }
+            req.payload = payload
+            next();
+        })
+
     }
 }

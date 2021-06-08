@@ -5,6 +5,9 @@ const createError = require('http-errors');
 const { verifyAccessToken } = require('./helper/jwt_helper');
 const authRoutes = require('./routes/auth_routes');
 const cors = require('cors')
+const User = require('./model/user');
+const server = require('http').createServer(app);
+// global.io = require('socket.io').listen(server);
 
 require('dotenv').config();
 require('./helper/init_mongoose');
@@ -25,6 +28,16 @@ app.get('/', verifyAccessToken, async (req, res, next) => {
     }
 })
 app.get('/test', (req, res) => {
+    console.log(req.headers);
+    res.send("Server is up and running...");
+})
+app.get('/profile', verifyAccessToken, async (req, res) => {
+    const user = await User.findById(req.payload.aud);
+    console.log(user);
+    res.send(user);
+})
+app.post('/test', (req, res) => {
+    console.log(req.headers);
     res.send("Server is up and running...");
 })
 
