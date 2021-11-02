@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const url = require('url');
 const morgan = require('morgan');
 const createError = require('http-errors');
 const { verifyAccessToken } = require('./helper/jwt_helper');
@@ -46,7 +47,8 @@ app.use('/auth', authRoutes);
 
 
 app.use(async (req, res, next) => {
-    next(createError.NotFound('this route doesnot exist'));
+    var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+    next(createError.NotFound(`this ${fullUrl} route doesnot exist`));
 })
 app.use((err, req, res, next) => {
     res.status(err.status || 500)

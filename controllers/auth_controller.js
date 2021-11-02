@@ -56,7 +56,6 @@ module.exports = {
             const result = await axios.get(url, { headers: { Authorization: `Bearer ${authHeader}` } });
             const { email, verified_email, id, name, picture } = result.data;
             if (!email && !id) throw createError.BadRequest("bad request")
-
             const existedUser = await User.findOne({ email })
             if (existedUser) {
 
@@ -74,7 +73,7 @@ module.exports = {
                 const accessToken = await signAccessToken(savedUser.id);
                 const refreshToken = await signRefreshToken(savedUser.id);
                 res.send({ accessToken, refreshToken });
-                
+
             }
         }
         catch (error) {
